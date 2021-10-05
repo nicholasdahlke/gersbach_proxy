@@ -1,6 +1,9 @@
+import string
+import flask
 import requests
 from flask import Flask, request, json
 import os
+from dataclasses import dataclass
 
 app = Flask(__name__)
 
@@ -12,15 +15,33 @@ def parse_request():
         if request.args['cmd'] == '1':
             gude_api(request.args['device'], request.args['value'])
         elif request.args['cmd'] == '2':
-            status_api(request.args['device'])
-    return "Hello"
+            return status_api(request.args['device'])
+    return "Error"
+
+
+@dataclass
+class status_resp:
+    name: string
+    value: bool
 
 
 def status_api(device):
     if device == 'volt':
-        payload = {'components':'1'}
-        response = requests.get('http://10.140.1.60/statusjsn.js', params=payload)
-        json_resp = response.json()
+        return status_api_call(3)
+
+    if device == 'mount':
+        return status_api_call(2)
+
+    return "error"
+
+
+def status_api_call(value):
+    payload = {'components': '1'}
+    response = requests.get('http://10.140.1.60/statusjsn.js', params=payload)
+    json_resp = response.json()
+    resp = status_resp(name=json_resp['outputs'][2]['name'], value=json_resp['outputs'][2]['state'])
+    resp_dict = {'device_name': resp.name, 'device_state': resp.value}
+    return flask.jsonify(resp_dict)
 
 
 def gude_api(device, value):
